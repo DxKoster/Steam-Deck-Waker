@@ -1,0 +1,27 @@
+# Home Assistant script: wake the Deck with up to 3 knocks, stopping as soon as
+# the BLE link reconnects (so no extra keystroke reaches an already-awake Deck).
+#
+# Add under `script:` in configuration.yaml (or scripts.yaml). Adjust the two
+# entity_ids to match your ESP device's exposed entities.
+#
+#   button.steam_deck_waker_wake_steam_deck      -> the ESP "Wake" button
+#   binary_sensor.steam_deck_waker_connected     -> the component's "connected" sensor
+
+wake_steam_deck:
+  alias: Wake Steam Deck
+  icon: mdi:power
+  mode: single
+  sequence:
+    - repeat:
+        count: 3
+        sequence:
+          - service: button.press
+            target:
+              entity_id: button.steam_deck_waker_wake_steam_deck
+          - delay: { seconds: 2 }
+          - if:
+              - condition: state
+                entity_id: binary_sensor.steam_deck_waker_connected
+                state: "on"
+            then:
+              - stop: Deck reconnected

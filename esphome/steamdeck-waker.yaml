@@ -1,0 +1,93 @@
+# ============================================================================
+# Steam Deck Waker — ESP32 BLE keyboard that wakes the Deck over Bluetooth
+# ============================================================================
+# Uses a patched fork of adesanto84/esphome-blekeyboard (ESP-IDF native NimBLE).
+# The patch adds high-duty DIRECTED advertising on the wake button: a *suspended*
+# Deck ignores undirected advertising, so we fire ADV_DIRECT_IND aimed at the
+# bonded Deck (the "knock" a real BT keyboard sends on keypress). Normal
+# reconnect stays undirected so the Deck can still sleep.
+#
+# Hardware here: MH-ET Live MiniKit (ESP32-WROOM-32). Wake key = space.
+# Any classic-ESP32 board works; the upstream component also supports C3/C6/H2.
+#
+# IMPORTANT: this only works if BlueZ's WakeAllowed=true for this device on the
+# Deck — see ../deck-side/ (SteamOS resets it on every reboot).
+# ============================================================================
+
+substitutions:
+  name: steamdeck-waker
+  friendly_name: Steam Deck Waker
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+
+esp32:
+  board: mhetesp32minikit
+  framework:
+    type: esp-idf
+    # --- PINNED toolchain (optional but recommended for reproducible BLE) ------
+    # Verified with ESPHome 2026.5.3 -> ESP-IDF 5.5.4 on pioarduino
+    # platform-espressif32 55.03.38-1. Pinning freezes the compiler/BLE stack.
+    # Delete these two lines to use your ESPHome's defaults.
+    version: "5.5.4"
+    platform_version: "https://github.com/pioarduino/platform-espressif32/releases/download/55.03.38-1/platform-espressif32.zip"
+
+external_components:
+  # The patched BLE-keyboard component lives in this repo at
+  # esphome/components/ble_keyboard. Referenced locally so you can edit + rebuild.
+  - source:
+      type: local
+      path: components
+  # --- Or pull it straight from GitHub instead of vendoring locally: ----------
+  # - source:
+  #     type: git
+  #     url: https://github.com/<you>/steamdeck-ble-waker
+  #     ref: main
+  #   components: [ble_keyboard]
+  #   path: esphome/components
+
+logger:
+
+api:
+  encryption:
+    key: !secret api_key_steamdeck
+
+ota:
+  - platform: esphome
+    password: !secret ota_password_steamdeck
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "Steamdeck-Waker Fallback"
+    password: !secret wifi_password
+
+captive_portal:
+
+# ESP-IDF native NimBLE HID keyboard
+ble_keyboard:
+  id: deck_kb
+  name: "Steam Deck Waker"
+  buttons: false          # don't expose one HA entity per key
+
+# HA-facing wake button. A sleeping Deck ignores undirected advertising, so we
+# kick a fresh high-duty (directed) advertise: stop -> start -> keypress. Pair
+# this with the deck-side WakeAllowed service or the Deck will ignore the knock.
+button:
+  - platform: template
+    name: "Wake Steam Deck"
+    icon: mdi:power
+    on_press:
+      - ble_keyboard.stop: deck_kb
+      - delay: 300ms
+      - ble_keyboard.start: deck_kb
+      - delay: 2s
+      - ble_keyboard.print:
+          id: deck_kb
+          text: " "
+      - delay: 1s
+      - ble_keyboard.print:
+          id: deck_kb
+          text: " "

@@ -1,0 +1,30 @@
+# Home Assistant automation (EXAMPLE): wake the Deck when a TV switches to the
+# Deck's HDMI input. Highly setup-specific — treat as a template.
+#
+# Two gotchas worth knowing if you adapt this to an LG webOS TV:
+#
+# 1) An LG TV often exposes TWO media_player entities (native webOS integration
+#    AND HomeKit Controller). The native webOS one tends to be unreliable for
+#    input detection — with the source device asleep / no signal it reports the
+#    home screen, never the HDMI input. The HomeKit Controller entity reports the
+#    selected input (e.g. "HDMI 3") reliably, even with no signal. Trigger off
+#    that one. Confirm the exact source string with Developer Tools → States.
+#
+# 2) Gate on the BLE link, not a power proxy. "Only wake if asleep" should key
+#    off the component's `connected` sensor (off = asleep). Don't use a smartplug
+#    wattage sensor — charging current makes it read "awake" falsely and would
+#    block legitimate wakes.
+
+alias: Wake Steam Deck when TV switches to its input
+trigger:
+  - platform: state
+    entity_id: media_player.your_tv          # the entity that reports inputs reliably
+    attribute: source
+    to: "HDMI 3"                              # your Deck's input label
+condition:
+  - condition: state
+    entity_id: binary_sensor.steam_deck_waker_connected
+    state: "off"                             # only if the Deck is asleep
+action:
+  - service: script.wake_steam_deck
+mode: single

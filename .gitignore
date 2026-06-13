@@ -1,0 +1,12 @@
+# Never commit real ESPHome credentials
+esphome/secrets.yaml
+
+# ESPHome build artifacts
+.esphome/
+esphome/.esphome/
+*.bin
+
+# OS noise
+.DS_Store
+
+__pycache__/

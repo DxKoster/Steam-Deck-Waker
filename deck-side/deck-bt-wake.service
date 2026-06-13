@@ -1,0 +1,10 @@
+[Unit]
+Description=Keep BLE device WakeAllowed=true (Steam Deck remote wake)
+
+[Service]
+ExecStart=%h/btwake.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
