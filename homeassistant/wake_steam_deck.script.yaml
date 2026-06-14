@@ -1,5 +1,10 @@
-# Home Assistant script: wake the Deck with up to 3 knocks, stopping as soon as
-# the BLE link reconnects (so no extra keystroke reaches an already-awake Deck).
+# Home Assistant script: wake the Deck via the BLE waker, robust against a
+# transient BLE blip. A single connect does NOT prove the host resumed — a
+# marginal link can connect for a couple of seconds without waking the Deck.
+# So this retries up to 5 knocks and only declares success once the link has
+# STAYED connected for a few seconds (a real resume), knocking only while the
+# link is free (directed advertising needs the host disconnected; pressing while
+# already connected would send a stray keystroke).
 #
 # Add under `script:` in configuration.yaml (or scripts.yaml). Adjust the two
 # entity_ids to match your ESP device's exposed entities.
@@ -13,15 +18,25 @@ wake_steam_deck:
   mode: single
   sequence:
     - repeat:
-        count: 3
+        count: 5
         sequence:
-          - service: button.press
-            target:
-              entity_id: button.steam_deck_waker_wake_steam_deck
-          - delay: { seconds: 2 }
+          # Success = the link has stayed connected for >=5s (a stable resume),
+          # not just a momentary blip. Also covers an already-awake Deck.
           - if:
               - condition: state
                 entity_id: binary_sensor.steam_deck_waker_connected
                 state: "on"
+                for: { seconds: 5 }
             then:
-              - stop: Deck reconnected
+              - stop: Deck awake (link stable)
+          # Knock only while disconnected: directed advertising needs the host
+          # disconnected, and it avoids sending a stray key to a connected Deck.
+          - if:
+              - condition: state
+                entity_id: binary_sensor.steam_deck_waker_connected
+                state: "off"
+            then:
+              - service: button.press
+                target:
+                  entity_id: button.steam_deck_waker_wake_steam_deck
+          - delay: { seconds: 6 }

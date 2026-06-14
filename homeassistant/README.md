@@ -4,8 +4,11 @@ Optional glue if you drive the waker from Home Assistant. Both files are
 templates — adjust the entity IDs to match your setup.
 
 - `wake_steam_deck.script.yaml` — a script that fires the ESP `Wake` button up to
-  3× with 2 s gaps and **stops early** the moment the BLE link reconnects (so no
-  stray keypress reaches an awake Deck). Point your dashboard buttons at
+  5×, knocking **only while the link is down** and treating success as the BLE
+  link **staying** connected for ≥5 s (a real resume), not a bare connect edge.
+  A marginal link can connect for a couple of seconds *without* waking the host,
+  so stopping on the first connect gives false successes — this waits for a stable
+  link and retries otherwise. Point your dashboard buttons at
   `script.wake_steam_deck` instead of the raw button so they all retry.
 - `wake_on_tv_input.automation.yaml` — example: wake the Deck when a TV switches
   to its HDMI input. Read the comments — there are two non-obvious gotchas
