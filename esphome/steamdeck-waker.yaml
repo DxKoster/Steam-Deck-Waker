@@ -32,23 +32,33 @@ esp32:
     # Delete these two lines to use your ESPHome's defaults.
     version: "5.5.4"
     platform_version: "https://github.com/pioarduino/platform-espressif32/releases/download/55.03.38-1/platform-espressif32.zip"
+    # Optional build-size / IRAM optimizations — BOARD-REVISION SPECIFIC, so left
+    # commented. If your boot log shows "Chip rev >= 3.0 detected" and "Bootloader
+    # supports SRAM1 as IRAM", uncomment to shrink the binary and gain ~40 KB IRAM.
+    # Never set minimum_chip_revision higher than your actual chip rev or it won't boot.
+    # advanced:
+    #   minimum_chip_revision: "3.0"
+    #   sram1_as_iram: true
 
 external_components:
-  # The patched BLE-keyboard component lives in this repo at
-  # esphome/components/ble_keyboard. Referenced locally so you can edit + rebuild.
+  # Pull the patched BLE-keyboard component straight from this repo over git, so
+  # THIS FILE WORKS ON ITS OWN — copy it anywhere, no need to clone the whole repo.
+  # ESPHome clones the repo and auto-discovers components under esphome/components.
+  # (If you fork this repo to change the component, point `url` at your fork.)
   - source:
-      type: local
-      path: components
-  # --- Or pull it straight from GitHub instead of vendoring locally: ----------
-  # ESPHome auto-discovers external components under both <repo>/components and
-  # <repo>/esphome/components, so no `path` is needed here. (`path` is NOT a valid
-  # key for a git source — only for `type: local` — so adding it fails config
-  # validation.)
+      type: git
+      url: https://github.com/DxKoster/Steam-Deck-Waker
+      ref: main
+    components: [ble_keyboard]
+    refresh: 1d
+  # --- Hacking on the component locally instead? If you cloned this WHOLE repo and
+  # want to edit esphome/components/ble_keyboard and rebuild from your checkout, use
+  # the local source below (path is relative to THIS file in esphome/, so
+  # `components` resolves to esphome/components). `path` is only valid for
+  # `type: local`, not for git.
   # - source:
-  #     type: git
-  #     url: https://github.com/<you>/steamdeck-ble-waker
-  #     ref: main
-  #   components: [ble_keyboard]
+  #     type: local
+  #     path: components
 
 logger:
 
