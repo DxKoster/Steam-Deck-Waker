@@ -40,12 +40,15 @@ external_components:
       type: local
       path: components
   # --- Or pull it straight from GitHub instead of vendoring locally: ----------
+  # ESPHome auto-discovers external components under both <repo>/components and
+  # <repo>/esphome/components, so no `path` is needed here. (`path` is NOT a valid
+  # key for a git source — only for `type: local` — so adding it fails config
+  # validation.)
   # - source:
   #     type: git
   #     url: https://github.com/<you>/steamdeck-ble-waker
   #     ref: main
   #   components: [ble_keyboard]
-  #   path: esphome/components
 
 logger:
 
