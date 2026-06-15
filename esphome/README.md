@@ -36,6 +36,12 @@ Notes:
   reproducible BLE stack — delete those two lines to use your defaults.
 - Classic ESP32 (WROOM) board shown; the upstream component also supports
   ESP32‑C3/C6/H2 (see `upstream-examples/`).
+- ⚠️ **Re-flashing can drop the BLE bond — re-pair afterwards.** A re-flash
+  *usually* keeps the bond (it lives in NVS, which flashing doesn't erase), but not
+  always: sometimes the Deck ends up with a **one-sided bond** (`reason=517`) where
+  the ESP flaps connect/disconnect — and those reconnect storms can even **wake the
+  Deck by themselves**. After every re-flash, do a quick wake test; if it flaps or
+  the waker vanishes from the Deck's Bluetooth list, re-pair (next section).
 
 ## Pair to the Deck (once)
 
@@ -46,8 +52,17 @@ Notes:
 
 ## Re-pairing / bond issues
 
-If you see a rapid connect/disconnect loop (`reason=517` = one-sided bond):
-`esptool erase-flash` the ESP, "Forget" the device on the Deck, then pair fresh.
+A **one-sided bond** (`reason=517`) shows up as a rapid connect/disconnect loop: the
+ESP keeps reconnecting, the waker **disappears from the Deck's Bluetooth list**, the
+deck-side keep-alive logs *"Failed to set property WakeAllowed … doesn't exist"*, and
+the reconnect storms can **spuriously wake the Deck**. **Re-flashing the ESP is the
+most common trigger** (the bond usually survives a flash — but not always). Fix:
+
+1. On the Deck: Settings → Bluetooth → **Forget** "Steam Deck Waker"
+   (or `bluetoothctl remove <WAKER_BT_MAC>`).
+2. `esptool erase-flash` the ESP to clear its stored bond.
+3. Pair fresh (the Deck re-discovers it as a keyboard), then confirm `WakeAllowed`
+   is back on — the deck-side keep-alive re-asserts it within ~30 s.
 
 ## Find the device's Bluetooth MAC
 
